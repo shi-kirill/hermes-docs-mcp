@@ -73,3 +73,12 @@ async def test_the_floor_starts_at_first_load(docs_server, tmp_path):
     hits = len(handler.hits)
     assert (await store.refresh())["throttled"] is True
     assert len(handler.hits) == hits
+
+
+def test_both_spellings_of_the_mcp_path_are_served():
+    """A 307 between /mcp and /mcp/ reads as "not found" to Claude's connector check."""
+    app = server.mcp.streamable_http_app()
+    paths = {getattr(route, "path", None) for route in app.router.routes}
+    assert {"/mcp", "/mcp/"} <= paths
+    again = {getattr(r, "path", None) for r in server.mcp.streamable_http_app().router.routes}
+    assert again == paths  # building the app twice must not pile up routes

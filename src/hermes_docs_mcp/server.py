@@ -20,6 +20,8 @@ import anyio
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
 from pydantic import Field
+from starlette.applications import Starlette
+from starlette.routing import Route
 
 from .config import LOOPBACK_HOSTS, bool_env, load_config
 from .errors import DocsInputError
@@ -67,7 +69,30 @@ EMPTY_HINT = (
     "Agent на английском: gateway, approvals, skills, memory, toolset, profile."
 )
 
-mcp = FastMCP(
+class _FastMCP(FastMCP):
+    """FastMCP that answers on both `/mcp` and `/mcp/`.
+
+    Starlette would redirect one spelling to the other with a 307. Compliant MCP
+    clients follow it, but the connector check in Claude does not: it reports the
+    server as not found, and the URL people copy is as likely to carry the slash
+    as not.
+    """
+
+    def streamable_http_app(self) -> Starlette:
+        app = super().streamable_http_app()
+        path = self.settings.streamable_http_path
+        alias = path.rstrip("/") + "/" if not path.endswith("/") else path.rstrip("/")
+        known = {getattr(route, "path", None) for route in app.router.routes}
+        if alias in known:
+            return app
+        original = next(r for r in app.router.routes if getattr(r, "path", None) == path)
+        app.router.routes.append(
+            Route(alias, endpoint=original.endpoint, methods=sorted(original.methods or []))
+        )
+        return app
+
+
+mcp = _FastMCP(
     "hermes-docs",
     host=_HOST,
     port=_PORT,
