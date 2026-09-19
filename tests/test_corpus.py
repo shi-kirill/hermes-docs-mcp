@@ -100,3 +100,13 @@ def test_long_sections_are_split_but_stay_attached_to_their_heading():
     # every piece of the section survives the split
     joined = " ".join(c.text for c in memory_chunks)
     assert joined.count("durable memory") == 120
+
+
+def test_breadcrumbs_use_the_same_title_as_the_page(full_text, index_text):
+    """The index can rename a page; its fragments must not keep the old name."""
+    corpus = build_corpus(full_text, index_text, BASE_URL)
+    page = corpus.by_path["user-guide/features/mcp"]
+    assert page.title == "MCP Integration"  # index wins over the page's own H1
+    assert {c.crumbs[0] for c in page.chunks} == {"MCP Integration"}
+    deep = next(c for c in page.chunks if c.heading == "Trust model")
+    assert deep.crumbs == ("MCP Integration", "Trust model")

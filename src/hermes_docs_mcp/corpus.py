@@ -9,7 +9,7 @@ one-line description for each page.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 PAGE_MARKER = re.compile(r"^<!--\s*source:\s*(?P<path>\S+?)\s*-->\s*$", re.MULTILINE)
 HEADING = re.compile(r"^(?P<hashes>#{1,6})\s+(?P<text>.+?)\s*#*\s*$", re.MULTILINE)
@@ -35,12 +35,22 @@ class IndexEntry:
 @dataclass(frozen=True)
 class Chunk:
     page_path: str
+    index: int
     heading: str
-    heading_path: str
+    crumbs: tuple[str, ...]
     anchor: str
     text: str
     start: int
     end: int
+
+    @property
+    def id(self) -> str:
+        """Stable address of this fragment: `user-guide/features/mcp#3`."""
+        return f"{self.page_path}#{self.index}"
+
+    @property
+    def heading_path(self) -> str:
+        return " > ".join(self.crumbs)
 
 
 @dataclass(frozen=True)
@@ -157,7 +167,6 @@ def chunk_page(path: str, title: str, body: str) -> tuple[Chunk, ...]:
             crumbs.append(parent)
         if heading:
             crumbs.append(heading)
-        heading_path = " > ".join(crumbs)
         raw = body[start:end].strip()
         if not raw:
             continue
@@ -168,8 +177,9 @@ def chunk_page(path: str, title: str, body: str) -> tuple[Chunk, ...]:
             chunks.append(
                 Chunk(
                     page_path=path,
+                    index=len(chunks),
                     heading=heading,
-                    heading_path=heading_path or title,
+                    crumbs=tuple(crumbs) or ((title,) if title else ()),
                     anchor=slugify(heading) if heading else "",
                     text=piece,
                     start=piece_start,
@@ -256,6 +266,18 @@ class Corpus:
                 out.append(page.nav_section)
         return out
 
+    def locate(self, ref: str) -> tuple[Page, Chunk | None] | None:
+        """Resolve `path#3` to its page and fragment; a bare reference to the page."""
+        head, _, tail = ref.strip().partition("#")
+        page = self.resolve(head or ref)
+        if page is None:
+            return None
+        if tail.isdigit():
+            position = int(tail)
+            if position < len(page.chunks):
+                return page, page.chunks[position]
+        return page, None
+
     def resolve(self, ref: str) -> Page | None:
         """Accept a doc path, a full URL, a source filename or an exact title."""
         needle = ref.strip()
@@ -286,17 +308,25 @@ def build_corpus(full_text: str, index_text: str, base_url: str) -> Corpus:
     enriched: list[Page] = []
     for page in pages:
         entry = index.get(page.url.rstrip("/"))
+        title = entry.title if entry and entry.title else page.title
+        chunks = page.chunks
+        if title != page.title:
+            # The index names a page differently from its own H1. One page, one
+            # name: the breadcrumb must not disagree with the title beside it.
+            chunks = tuple(
+                replace(chunk, crumbs=(title,) + chunk.crumbs[1:]) for chunk in chunks
+            )
         enriched.append(
             Page(
                 path=page.path,
                 source=page.source,
-                title=entry.title if entry and entry.title else page.title,
+                title=title,
                 section=page.section,
                 url=page.url,
                 body=page.body,
                 description=entry.description if entry else "",
                 nav_section=entry.nav_section if entry else "",
-                chunks=page.chunks,
+                chunks=chunks,
             )
         )
     return Corpus(enriched, base_url)

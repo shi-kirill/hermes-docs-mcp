@@ -7,13 +7,7 @@ import pytest
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
-EXPECTED_TOOLS = {
-    "hermes_docs_status",
-    "hermes_docs_search",
-    "hermes_docs_page",
-    "hermes_docs_list",
-    "hermes_docs_refresh",
-}
+EXPECTED_TOOLS = {"search", "fetch"}
 
 
 @pytest.fixture
@@ -32,26 +26,24 @@ async def test_tools_are_listed_and_callable(params):
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         listed = await session.list_tools()
-        names = {t.name for t in listed.tools}
-        assert names >= EXPECTED_TOOLS
+        assert {t.name for t in listed.tools} == EXPECTED_TOOLS
         for tool in listed.tools:
             assert tool.description  # every tool documents itself for the model
 
-        result = await session.call_tool("hermes_docs_search", {"query": "mcp server", "limit": 2})
+        result = await session.call_tool("search", {"query": "mcp server"})
         assert result.isError is False
-        assert "user-guide/features/mcp" in result.content[0].text
+        assert result.structuredContent is not None
+        assert "user-guide/features/mcp" in result.content[1].text
 
-        page = await session.call_tool(
-            "hermes_docs_page", {"page": "getting-started/installation"}
-        )
+        page = await session.call_tool("fetch", {"id": "getting-started/installation"})
         assert page.isError is False
-        assert "Quick Install" in page.content[0].text
+        assert "Quick Install" in page.structuredContent["text"]
 
 
 async def test_bad_arguments_are_rejected_by_the_schema(params):
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
-        too_many = await session.call_tool("hermes_docs_search", {"query": "mcp", "limit": 999})
-        assert too_many.isError is True
-        unknown = await session.call_tool("hermes_docs_page", {"page": "no/such/page"})
+        too_short = await session.call_tool("search", {"query": "x"})
+        assert too_short.isError is True
+        unknown = await session.call_tool("fetch", {"id": "no/such/page"})
         assert unknown.isError is True

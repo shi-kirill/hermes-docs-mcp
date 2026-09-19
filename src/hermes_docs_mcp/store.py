@@ -15,6 +15,7 @@ from anyio import to_thread
 
 from .config import Config
 from .corpus import Corpus, build_corpus
+from .errors import DocsError
 from .fetcher import cache_state, ensure_cached, load_sources, refresh
 from .search import SearchIndex
 
@@ -58,8 +59,28 @@ class DocsStore:
                 # rather than on the first explicit refresh.
                 self._last_refresh_at = time.monotonic()
                 await to_thread.run_sync(self._build)
+            else:
+                await self._refresh_if_stale()
             assert self._corpus is not None
             return self._corpus
+
+    async def _refresh_if_stale(self) -> None:
+        """Keep a long-running instance current, now that nothing asks it to.
+
+        Failures are swallowed on purpose: stale docs beat no docs, and the
+        timestamp advances either way so a broken site is not hammered.
+        """
+        waited = self._seconds_since_refresh()
+        if waited is not None and waited < self.cfg.min_refresh_seconds:
+            return
+        if not cache_state(self.cfg)["stale"]:
+            return
+        self._last_refresh_at = time.monotonic()
+        try:
+            self._last_sync = await refresh(self.cfg)
+        except DocsError:
+            return
+        await to_thread.run_sync(self._build)
 
     async def searcher(self) -> SearchIndex:
         await self.ready()
