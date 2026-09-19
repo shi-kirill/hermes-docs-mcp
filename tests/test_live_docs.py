@@ -19,6 +19,7 @@ async def test_live_site_still_matches_our_parser(tmp_path):
         ttl_seconds=0,
         timeout=60.0,
         offline=False,
+        min_refresh_seconds=0,
     )
     store = DocsStore(cfg)
     corpus = await store.ready()

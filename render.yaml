@@ -1,0 +1,24 @@
+# Deploy this server as a remote MCP connector.
+#
+# Render sets PORT; the server reads it. Binding beyond loopback is refused
+# unless asked for by name, hence ALLOW_PUBLIC_BIND: an exposed instance serves
+# the public Hermes Agent documentation to anyone with the URL, which is the
+# whole point here but must never happen by accident.
+#
+# The connector URL is https://<service>.onrender.com/mcp/
+services:
+  - type: web
+    name: hermes-docs-mcp
+    runtime: python
+    plan: free
+    buildCommand: pip install .
+    startCommand: hermes-docs-mcp
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.0"
+      - key: HERMES_DOCS_MCP_TRANSPORT
+        value: streamable-http
+      - key: HERMES_DOCS_MCP_HOST
+        value: 0.0.0.0
+      - key: HERMES_DOCS_MCP_ALLOW_PUBLIC_BIND
+        value: "1"

@@ -11,16 +11,25 @@ from __future__ import annotations
 import os
 from typing import Annotated, Any
 
+import anyio
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
-from .config import LOOPBACK_HOSTS, load_config
+from .config import LOOPBACK_HOSTS, bool_env, load_config
 from .corpus import Page, slugify
 from .errors import DocsInputError
+from .fetcher import ensure_cached
 from .store import DocsStore
 
 _HOST = os.environ.get("HERMES_DOCS_MCP_HOST", "127.0.0.1")
-_PORT = int(os.environ.get("HERMES_DOCS_MCP_PORT", "8020"))
+
+
+def resolve_port() -> int:
+    """Our own variable wins; PORT is what Render and most hosts hand a service."""
+    return int(os.environ.get("HERMES_DOCS_MCP_PORT") or os.environ.get("PORT") or 8020)
+
+
+_PORT = resolve_port()
 # A page slice big enough to answer a question, small enough not to drown a
 # context window; callers page through with `offset`.
 MAX_PAGE_CHARS = 40_000
@@ -195,15 +204,28 @@ async def hermes_docs_refresh(force: bool = False) -> dict[str, Any]:
     return await _STORE.refresh(force=force)
 
 
-def _validate_transport(transport: str, host: str) -> None:
-    if transport != "stdio" and host.lower() not in LOOPBACK_HOSTS:
-        raise RuntimeError(
-            "HTTP transports may only bind to loopback because this server has no "
-            "remote-client authentication. Use 127.0.0.1 and an authenticated tunnel."
-        )
+def _validate_transport(transport: str, host: str, *, allow_public: bool = False) -> None:
+    """Binding beyond loopback is deliberate, never accidental.
+
+    The server has no client authentication, so exposing it publishes the tools
+    to whoever finds the URL. That is acceptable for this one — it serves public
+    documentation and nothing else — but it has to be asked for by name.
+    """
+    if transport == "stdio" or host.lower() in LOOPBACK_HOSTS or allow_public:
+        return
+    raise RuntimeError(
+        f"refusing to bind {transport} to {host}: this server has no client "
+        "authentication. Use 127.0.0.1, or set HERMES_DOCS_MCP_ALLOW_PUBLIC_BIND=1 "
+        "if serving the public docs to anyone with the URL is what you want."
+    )
 
 
 def run() -> None:
     transport = os.environ.get("HERMES_DOCS_MCP_TRANSPORT", "stdio")
-    _validate_transport(transport, _HOST)
+    _validate_transport(transport, _HOST, allow_public=bool_env("HERMES_DOCS_MCP_ALLOW_PUBLIC_BIND"))
+    if transport != "stdio":
+        # Pull the docs before the port opens: a hosted instance should not spend
+        # its first request downloading 5 MB, and a broken fetch belongs in the
+        # deploy log rather than in someone's first search.
+        anyio.run(ensure_cached, _STORE.cfg)
     mcp.run(transport=transport)

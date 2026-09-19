@@ -1,5 +1,3 @@
-import http.server
-import threading
 from pathlib import Path
 
 import pytest
@@ -11,54 +9,6 @@ from hermes_docs_mcp.errors import DocsFetchError, DocsOfflineError
 from .conftest import FULL_TEXT, INDEX_TEXT
 
 
-class _Handler(http.server.BaseHTTPRequestHandler):
-    bodies: dict[str, str] = {}
-    etag = '"v1"'
-    hits: list[str] = []
-    fail_status: int | None = None
-
-    def log_message(self, *args):  # keep test output clean
-        pass
-
-    def do_GET(self):  # noqa: N802 - stdlib naming
-        type(self).hits.append(self.path)
-        if type(self).fail_status:
-            self.send_response(type(self).fail_status)
-            self.end_headers()
-            return
-        body = type(self).bodies.get(self.path)
-        if body is None:
-            self.send_response(404)
-            self.end_headers()
-            return
-        if self.headers.get("If-None-Match") == type(self).etag:
-            self.send_response(304)
-            self.send_header("ETag", type(self).etag)
-            self.end_headers()
-            return
-        payload = body.encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
-        self.send_header("Content-Length", str(len(payload)))
-        self.send_header("ETag", type(self).etag)
-        self.end_headers()
-        self.wfile.write(payload)
-
-
-@pytest.fixture
-def docs_server():
-    _Handler.bodies = {"/llms-full.txt": FULL_TEXT, "/docs/llms.txt": INDEX_TEXT}
-    _Handler.etag = '"v1"'
-    _Handler.hits = []
-    _Handler.fail_status = None
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), _Handler)
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    yield server, _Handler
-    server.shutdown()
-    server.server_close()
-
-
 def _cfg(server, tmp_path: Path, **kw) -> Config:
     host, port = server.server_address[:2]
     return Config(
@@ -67,6 +17,7 @@ def _cfg(server, tmp_path: Path, **kw) -> Config:
         ttl_seconds=kw.pop("ttl_seconds", 3600),
         timeout=5.0,
         offline=kw.pop("offline", False),
+        min_refresh_seconds=0,
     )
 
 

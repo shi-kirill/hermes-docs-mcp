@@ -15,6 +15,9 @@ from .errors import DocsConfigError
 
 DEFAULT_BASE_URL = "https://hermes-agent.nousresearch.com"
 DEFAULT_TTL_SECONDS = 24 * 3600
+# An exposed instance must not become a download button for anyone who finds
+# the URL, so refreshes have a floor regardless of who asks.
+DEFAULT_MIN_REFRESH_SECONDS = 300
 DEFAULT_TIMEOUT = 30.0
 # The real file is ~5 MB; the cap only exists so a redirect to something huge
 # cannot fill the disk.
@@ -29,6 +32,7 @@ class Config:
     ttl_seconds: int
     timeout: float
     offline: bool
+    min_refresh_seconds: int
 
     @property
     def full_text_url(self) -> str:
@@ -81,7 +85,7 @@ def _int_env(name: str, default: int, *, minimum: int = 0) -> int:
     return value
 
 
-def _bool_env(name: str, default: bool = False) -> bool:
+def bool_env(name: str, default: bool = False) -> bool:
     raw = os.environ.get(name)
     if raw is None:
         return default
@@ -97,5 +101,8 @@ def load_config() -> Config:
         cache_dir=cache_dir,
         ttl_seconds=_int_env("HERMES_DOCS_MCP_TTL", DEFAULT_TTL_SECONDS),
         timeout=float(_int_env("HERMES_DOCS_MCP_TIMEOUT", int(DEFAULT_TIMEOUT), minimum=1)),
-        offline=_bool_env("HERMES_DOCS_MCP_OFFLINE"),
+        offline=bool_env("HERMES_DOCS_MCP_OFFLINE"),
+        min_refresh_seconds=_int_env(
+            "HERMES_DOCS_MCP_MIN_REFRESH", DEFAULT_MIN_REFRESH_SECONDS
+        ),
     )
