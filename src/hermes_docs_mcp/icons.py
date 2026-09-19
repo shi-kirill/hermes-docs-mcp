@@ -32,8 +32,20 @@ def data_uri(name: str) -> str:
 
 
 def public_base_url() -> str:
-    """Absolute origin of a hosted instance, if it knows one."""
-    return os.environ.get("HERMES_DOCS_MCP_PUBLIC_URL", "").strip().rstrip("/")
+    """Absolute origin of a hosted instance, if it knows one.
+
+    Render hands every web service its own external URL, so a deploy needs no
+    configuring; RENDER_EXTERNAL_HOSTNAME is the older spelling of the same
+    thing. An explicit setting wins over both, for hosts that pass neither.
+    """
+    explicit = os.environ.get("HERMES_DOCS_MCP_PUBLIC_URL", "").strip()
+    if explicit:
+        return explicit.rstrip("/")
+    given = os.environ.get("RENDER_EXTERNAL_URL", "").strip()
+    if given:
+        return given.rstrip("/")
+    host = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+    return f"https://{host.rstrip('/')}" if host else ""
 
 
 def server_icons() -> list[Icon]:

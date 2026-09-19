@@ -5,7 +5,9 @@
 # the public Hermes Agent documentation to anyone with the URL, which is the
 # whole point here but must never happen by accident.
 #
-# The connector URL is https://<service>.onrender.com/mcp/
+# The connector URL is https://<service>.onrender.com/mcp (the trailing slash
+# works too). The icon is advertised from RENDER_EXTERNAL_URL, which Render
+# sets by itself — nothing to configure.
 services:
   - type: web
     name: hermes-docs-mcp
@@ -22,6 +24,3 @@ services:
         value: 0.0.0.0
       - key: HERMES_DOCS_MCP_ALLOW_PUBLIC_BIND
         value: "1"
-      # Lets the server advertise its icon by URL instead of inlining it.
-      - key: HERMES_DOCS_MCP_PUBLIC_URL
-        value: https://hermes-docs-mcp.onrender.com

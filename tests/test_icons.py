@@ -38,3 +38,18 @@ def test_the_icon_file_ships_and_is_served():
 
 def test_the_server_advertises_its_home():
     assert server.mcp._mcp_server.website_url == "https://github.com/shi-kirill/hermes-docs-mcp"
+
+
+def test_render_supplies_the_public_url_by_itself(monkeypatch):
+    """A Render deploy must not need an env var spelled out by hand."""
+    monkeypatch.delenv("HERMES_DOCS_MCP_PUBLIC_URL", raising=False)
+    monkeypatch.delenv("RENDER_EXTERNAL_HOSTNAME", raising=False)
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://svc.onrender.com/")
+    assert icons.public_base_url() == "https://svc.onrender.com"
+
+    monkeypatch.delenv("RENDER_EXTERNAL_URL")
+    monkeypatch.setenv("RENDER_EXTERNAL_HOSTNAME", "svc.onrender.com")
+    assert icons.public_base_url() == "https://svc.onrender.com"
+
+    monkeypatch.setenv("HERMES_DOCS_MCP_PUBLIC_URL", "https://docs.example.test")
+    assert icons.public_base_url() == "https://docs.example.test"  # explicit wins
