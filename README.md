@@ -52,9 +52,32 @@ uv run hermes-docs-mcp   # stdio
 
 ### Claude Code
 
-```bash
-claude mcp add hermes-docs -- uv --directory /полный/путь/hermes-docs-mcp run hermes-docs-mcp
+Проектный `.mcp.json` рядом с репозиторием:
+
+```json
+{
+  "mcpServers": {
+    "hermes-docs": {
+      "command": "/полный/путь/hermes-docs-mcp/.venv/bin/hermes-docs-mcp",
+      "args": []
+    }
+  }
+}
 ```
+
+Чтобы Claude Code не спрашивал подтверждение, добавьте `"enabledMcpjsonServers": ["hermes-docs"]`
+в `.claude/settings.local.json` проекта.
+
+### Claude Desktop
+
+```bash
+./scripts/install-desktop-config.sh
+```
+
+> Запускайте **при полностью закрытом Claude** (Cmd+Q). Приложение держит
+> `claude_desktop_config.json` в памяти и перезаписывает файл, пока работает,
+> молча стирая записи, добавленные в обход него. Скрипт идемпотентен и делает
+> бэкап конфига.
 
 ### Hermes Agent
 
