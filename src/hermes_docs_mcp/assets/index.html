@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>hermes-docs — MCP-коннектор к документации Hermes Agent</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="MCP-коннектор: поиск и чтение документации Hermes Agent из вашего ИИ-ассистента.">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/icon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="/icon-128.png" sizes="128x128" type="image/png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<style>
+  :root { color-scheme: light dark; --fg: #16181d; --muted: #5c6370; --line: #e3e5ea; --bg: #fff; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #e8eaee; --muted: #9aa1ad; --line: #2b2f38; --bg: #14161a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 48px 16px; background: var(--bg); color: var(--fg);
+         font: 16px/1.6 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 42rem; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  header img { width: 64px; height: 64px; border-radius: 12px; border: 1px solid var(--line); }
+  h1 { font-size: 1.5rem; margin: 0; }
+  p.lede { color: var(--muted); margin: 0 0 28px; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; }
+  pre { background: color-mix(in srgb, var(--fg) 5%, transparent); border: 1px solid var(--line);
+        border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0 0 28px; }
+  dt { color: var(--muted); }
+  dd { margin: 0; }
+  footer { margin-top: 36px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; }
+  a { color: inherit; }
+</style>
+<main>
+  <header>
+    <img src="/icon-128.png" alt="">
+    <h1>hermes-docs</h1>
+  </header>
+  <p class="lede">MCP-коннектор к официальной документации
+    <a href="https://hermes-agent.nousresearch.com/docs">Hermes Agent</a>:
+    ассистент сам ищет ответ в доке и ссылается на страницу.</p>
+
+  <p>Адрес для подключения — вставьте его в «Add custom connector»:</p>
+  <pre>https://hermes-docs-mcp.onrender.com/mcp</pre>
+
+  <dl>
+    <dt>Транспорт</dt><dd>Streamable HTTP</dd>
+    <dt>Авторизация</dt><dd>нет, доступ открытый</dd>
+    <dt>Инструменты</dt><dd><code>search(query)</code> и <code>fetch(id)</code></dd>
+  </dl>
+
+  <p>Документация англоязычная, поиск лексический — запрос стоит формулировать
+    по-английски, отвечать вам ассистент может по-русски.</p>
+
+  <footer>
+    Исходный код и условия — <a href="https://github.com/shi-kirill/hermes-docs-mcp">github.com/shi-kirill/hermes-docs-mcp</a>.
+    Проект неофициальный; документация принадлежит Nous Research.
+  </footer>
+</main>

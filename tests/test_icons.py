@@ -30,10 +30,30 @@ def test_a_missing_asset_does_not_break_startup(monkeypatch):
     icons.data_uri.cache_clear()
 
 
-def test_the_icon_file_ships_and_is_served():
-    assert (icons.ASSETS / icons.LARGE).is_file()
-    paths = {getattr(r, "path", None) for r in server.mcp.streamable_http_app().router.routes}
-    assert icons.ICON_ROUTE in paths
+def test_every_advertised_asset_ships():
+    for name, _ in icons.STATIC_FILES.values():
+        assert (icons.ASSETS / name).is_file(), name
+
+
+def test_a_connector_list_finds_the_icon_the_way_a_browser_would():
+    """Not via the MCP handshake: through /favicon.ico and the landing page."""
+    from starlette.testclient import TestClient
+
+    with TestClient(server.mcp.streamable_http_app()) as client:
+        favicon = client.get("/favicon.ico")
+        assert favicon.status_code == 200
+        assert favicon.headers["content-type"].startswith("image/")
+        assert favicon.content[:4] == b"\x00\x00\x01\x00"  # ICONDIR header
+
+        root = client.get("/")
+        assert root.status_code == 200
+        assert 'rel="icon"' in root.text
+        assert "/mcp" in root.text  # the page tells a visitor what to connect to
+
+        for path in ("/icon-128.png", "/icon-32.png", "/apple-touch-icon.png"):
+            asset = client.get(path)
+            assert asset.status_code == 200, path
+            assert asset.content[:8] == b"\x89PNG\r\n\x1a\n", path
 
 
 def test_the_server_advertises_its_home():

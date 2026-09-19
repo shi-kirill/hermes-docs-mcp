@@ -20,6 +20,19 @@ LARGE = "icon-128.png"
 SMALL = "icon-48.png"
 ICON_ROUTE = f"/{LARGE}"
 
+# Served at the site root. A connector list looks the icon up the way a browser
+# would — /favicon.ico, or the <link rel="icon"> on the landing page — not in the
+# icons field of the MCP handshake, so both have to be there.
+STATIC_FILES: dict[str, tuple[str, str]] = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/favicon.ico": ("favicon.ico", "image/vnd.microsoft.icon"),
+    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+    "/icon-16.png": ("icon-16.png", "image/png"),
+    "/icon-32.png": ("icon-32.png", "image/png"),
+    "/icon-48.png": ("icon-48.png", "image/png"),
+    ICON_ROUTE: (LARGE, "image/png"),
+}
+
 
 @lru_cache(maxsize=2)
 def data_uri(name: str) -> str:

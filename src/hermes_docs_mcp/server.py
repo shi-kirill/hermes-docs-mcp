@@ -27,7 +27,7 @@ from starlette.routing import Route
 from .config import LOOPBACK_HOSTS, bool_env, load_config
 from .errors import DocsInputError
 from .fetcher import ensure_cached
-from .icons import ASSETS, ICON_ROUTE, LARGE, server_icons
+from .icons import ASSETS, STATIC_FILES, server_icons
 from .store import DocsStore
 
 _HOST = os.environ.get("HERMES_DOCS_MCP_HOST", "127.0.0.1")
@@ -82,7 +82,7 @@ class _FastMCP(FastMCP):
 
     def streamable_http_app(self) -> Starlette:
         app = super().streamable_http_app()
-        self._add_icon_route(app)
+        self._add_static_routes(app)
         path = self.settings.streamable_http_path
         alias = path.rstrip("/") + "/" if not path.endswith("/") else path.rstrip("/")
         known = {getattr(route, "path", None) for route in app.router.routes}
@@ -95,19 +95,21 @@ class _FastMCP(FastMCP):
         return app
 
     @staticmethod
-    def _add_icon_route(app: Starlette) -> None:
-        """Serve the icon a hosted instance advertises in its initialize response."""
-        if any(getattr(route, "path", None) == ICON_ROUTE for route in app.router.routes):
-            return
+    def _add_static_routes(app: Starlette) -> None:
+        """Serve the landing page and the icons a connector list goes looking for."""
+        known = {getattr(route, "path", None) for route in app.router.routes}
+        for path, (name, media_type) in STATIC_FILES.items():
+            if path in known:
+                continue
 
-        async def icon(_request):
-            return FileResponse(
-                ASSETS / LARGE,
-                media_type="image/png",
-                headers={"Cache-Control": "public, max-age=86400"},
-            )
+            def endpoint(_request, name=name, media_type=media_type):
+                return FileResponse(
+                    ASSETS / name,
+                    media_type=media_type,
+                    headers={"Cache-Control": "public, max-age=86400"},
+                )
 
-        app.router.routes.append(Route(ICON_ROUTE, endpoint=icon, methods=["GET"]))
+            app.router.routes.append(Route(path, endpoint=endpoint, methods=["GET"]))
 
 
 mcp = _FastMCP(
