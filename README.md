@@ -39,11 +39,22 @@
 
 ## Установка
 
+Для разработки:
+
 ```bash
 cd hermes-docs-mcp
 uv sync
 uv run hermes-docs-mcp   # stdio
 ```
+
+Для использования из Claude — см. «Подключение» ниже: рантайм ставится отдельно,
+**вне** `~/Desktop`, `~/Documents` и `~/Downloads`.
+
+> **macOS:** Claude запускает MCP-серверы без доступа к этим трём папкам. venv,
+> лежащий там, умирает ещё до старта Python:
+> `PermissionError: Operation not permitted: .../.venv/pyvenv.cfg`,
+> затем `Fatal Python error: init_import_site`. Репозиторий может лежать где
+> угодно — важно только, где стоит рантайм.
 
 Первый вызов любого инструмента, которому нужна документация, скачает выгрузки
 (~5 МБ). Дальше всё работает из кэша; сеть нужна только при обновлении.
@@ -58,7 +69,7 @@ uv run hermes-docs-mcp   # stdio
 {
   "mcpServers": {
     "hermes-docs": {
-      "command": "/полный/путь/hermes-docs-mcp/.venv/bin/hermes-docs-mcp",
+      "command": "/Users/вы/hermes-docs-mcp/.venv/bin/hermes-docs-mcp",
       "args": []
     }
   }
@@ -74,10 +85,13 @@ uv run hermes-docs-mcp   # stdio
 ./scripts/install-desktop-config.sh
 ```
 
+Скрипт собирает wheel, ставит его в `~/hermes-docs-mcp/.venv` (путь меняется
+через `HERMES_DOCS_MCP_PREFIX`) и прописывает этот бинарь в конфиг. Идемпотентен,
+делает бэкап конфига, отказывается ставить рантайм в папку, закрытую от Claude.
+
 > Запускайте **при полностью закрытом Claude** (Cmd+Q). Приложение держит
 > `claude_desktop_config.json` в памяти и перезаписывает файл, пока работает,
-> молча стирая записи, добавленные в обход него. Скрипт идемпотентен и делает
-> бэкап конфига.
+> стирая записи, добавленные в обход него, — проверено, в пределах десяти секунд.
 
 ### Hermes Agent
 
