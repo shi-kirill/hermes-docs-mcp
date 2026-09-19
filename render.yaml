@@ -22,3 +22,6 @@ services:
         value: 0.0.0.0
       - key: HERMES_DOCS_MCP_ALLOW_PUBLIC_BIND
         value: "1"
+      # Lets the server advertise its icon by URL instead of inlining it.
+      - key: HERMES_DOCS_MCP_PUBLIC_URL
+        value: https://hermes-docs-mcp.onrender.com

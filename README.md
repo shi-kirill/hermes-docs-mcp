@@ -148,6 +148,7 @@ mcp_servers:
 | `HERMES_DOCS_MCP_OFFLINE` | не задана | `1` — никогда не ходить в сеть, работать только из кэша |
 | `HERMES_DOCS_MCP_TRANSPORT` | `stdio` | `stdio`, `sse` или `streamable-http` |
 | `HERMES_DOCS_MCP_ALLOW_PUBLIC_BIND` | не задана | `1` — разрешить HTTP-бинд вне loopback (осознанная публикация) |
+| `HERMES_DOCS_MCP_PUBLIC_URL` | не задана | внешний адрес инстанса; с ним иконка отдаётся ссылкой, без него — инлайном |
 | `HERMES_DOCS_MCP_MIN_REFRESH` | `300` | минимальный интервал между обновлениями доки, секунды |
 | `HERMES_DOCS_MCP_HOST` / `_PORT` | `127.0.0.1` / `8020` | только для HTTP-транспортов; `PORT` от хостинга тоже читается |
 

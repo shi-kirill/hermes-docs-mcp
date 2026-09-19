@@ -21,11 +21,13 @@ from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
 from pydantic import Field
 from starlette.applications import Starlette
+from starlette.responses import FileResponse
 from starlette.routing import Route
 
 from .config import LOOPBACK_HOSTS, bool_env, load_config
 from .errors import DocsInputError
 from .fetcher import ensure_cached
+from .icons import ASSETS, ICON_ROUTE, LARGE, server_icons
 from .store import DocsStore
 
 _HOST = os.environ.get("HERMES_DOCS_MCP_HOST", "127.0.0.1")
@@ -80,6 +82,7 @@ class _FastMCP(FastMCP):
 
     def streamable_http_app(self) -> Starlette:
         app = super().streamable_http_app()
+        self._add_icon_route(app)
         path = self.settings.streamable_http_path
         alias = path.rstrip("/") + "/" if not path.endswith("/") else path.rstrip("/")
         known = {getattr(route, "path", None) for route in app.router.routes}
@@ -91,12 +94,29 @@ class _FastMCP(FastMCP):
         )
         return app
 
+    @staticmethod
+    def _add_icon_route(app: Starlette) -> None:
+        """Serve the icon a hosted instance advertises in its initialize response."""
+        if any(getattr(route, "path", None) == ICON_ROUTE for route in app.router.routes):
+            return
+
+        async def icon(_request):
+            return FileResponse(
+                ASSETS / LARGE,
+                media_type="image/png",
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
+
+        app.router.routes.append(Route(ICON_ROUTE, endpoint=icon, methods=["GET"]))
+
 
 mcp = _FastMCP(
     "hermes-docs",
     host=_HOST,
     port=_PORT,
     stateless_http=True,
+    website_url="https://github.com/shi-kirill/hermes-docs-mcp",
+    icons=server_icons(),
 )
 _STORE = DocsStore(load_config())
 
